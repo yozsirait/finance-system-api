@@ -7,6 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends Model
 {
     //
+    protected $fillable = [
+        'user_id',
+        'member_id',
+        'account_id',
+        'category_id',
+        'type',           // 'income', 'expense', 'transfer'
+        'amount',
+        'date',
+        'note'
+    ];
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class BudgetCategory extends Model
 {
     //
+    protected $fillable = [
+        'user_id',
+        'category_id',
+        'amount',
+    ];
     public function user()
     {
         return $this->belongsTo(User::class);

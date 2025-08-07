@@ -21,8 +21,7 @@ class CategoryController extends Controller
     }
 
     public function store(Request $request)
-    {
-        dd($request->all());
+    {        
         $data = $request->validate([
             'name' => 'required',
             'type' => 'required|in:income,expense'

@@ -21,7 +21,7 @@ class AccountController extends Controller
             'name' => 'required',
             'balance' => 'numeric',
         ]);
-        $data['user_id'] = Auth::id();
+        $data['user_id'] = Auth::id();        
         return Account::create($data);
     }
 
