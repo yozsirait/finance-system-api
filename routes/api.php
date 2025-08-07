@@ -10,9 +10,15 @@ use App\Http\Controllers\Api\RecurringTransactionController;
 use App\Http\Controllers\Api\SavingTargetController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\AuthController;
 
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+
     Route::apiResource('members', MemberController::class);
     Route::apiResource('accounts', AccountController::class);
     Route::apiResource('categories', CategoryController::class);
