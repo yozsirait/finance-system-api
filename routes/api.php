@@ -42,4 +42,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/backup/export', [BackupController::class, 'export']);
     Route::post('/backup/import', [BackupController::class, 'import']);
+
+    Route::get('/transactions/{id}/history', [TransactionController::class, 'history']);
 });

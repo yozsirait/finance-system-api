@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Events\BudgetLimitReached;
 use Carbon\Carbon;
-use App\Models\{Member, Account, Category, BudgetCategory, Transaction};
+use Illuminate\Support\Facades\DB;
+use App\Models\{Member, Account, Category, BudgetCategory, Transaction, TransactionHistory};
 
 class TransactionController extends Controller
 {
@@ -31,7 +32,6 @@ class TransactionController extends Controller
 
         $data['user_id'] = Auth::id();
 
-        // Cek saldo akun jika expense atau transfer
         $account = Account::where('user_id', $data['user_id'])
             ->where('id', $data['account_id'])
             ->first();
@@ -44,18 +44,32 @@ class TransactionController extends Controller
             throw ValidationException::withMessages(['amount' => 'Jumlah transaksi melebihi saldo akun']);
         }
 
-        // Buat transaksi
-        $transaction = Transaction::create($data);
+        DB::beginTransaction();
+        try {
+            $transaction = Transaction::create($data);
 
-        // Update saldo akun sesuai tipe transaksi
-        $this->updateAccountBalance($account, $transaction->type, $transaction->amount);
+            $this->updateAccountBalance($account, $transaction->type, $transaction->amount);
 
-        // Budget alert jika tipe expense
-        if ($transaction->type === 'expense') {
-            $this->checkBudgetAlert($transaction);
+            if ($transaction->type === 'expense') {
+                $this->checkBudgetAlert($transaction);
+            }
+
+            // Simpan histori created
+            TransactionHistory::create([
+                'transaction_id' => $transaction->id,
+                'user_id' => Auth::id(),
+                'old_data' => null,
+                'new_data' => $transaction->toArray(),
+                'action' => 'created',
+            ]);
+
+            DB::commit();
+            return response()->json($transaction, 201);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        return response()->json($transaction, 201);
     }
 
     public function show($id)
@@ -84,43 +98,77 @@ class TransactionController extends Controller
             throw ValidationException::withMessages(['account_id' => 'Akun tidak ditemukan']);
         }
 
-        // Revert saldo akun lama
-        $this->revertAccountBalance($accountOld, $trx->type, $trx->amount);
+        DB::beginTransaction();
+        try {
+            // Revert saldo akun lama
+            $this->revertAccountBalance($accountOld, $trx->type, $trx->amount);
 
-        // Cek saldo akun baru jika expense atau transfer
-        if (in_array($data['type'], ['expense', 'transfer']) && $data['amount'] > $accountNew->balance) {
-            // Kembalikan saldo akun lama ke keadaan semula karena gagal update
-            $this->updateAccountBalance($accountOld, $trx->type, $trx->amount);
+            if (in_array($data['type'], ['expense', 'transfer']) && $data['amount'] > $accountNew->balance) {
+                // rollback revert saldo lama
+                $this->updateAccountBalance($accountOld, $trx->type, $trx->amount);
+                throw ValidationException::withMessages(['amount' => 'Jumlah transaksi melebihi saldo akun']);
+            }
 
-            throw ValidationException::withMessages(['amount' => 'Jumlah transaksi melebihi saldo akun']);
+            $oldData = $trx->toArray();
+
+            $trx->update($data);
+
+            $this->updateAccountBalance($accountNew, $trx->type, $trx->amount);
+
+            if ($trx->type === 'expense') {
+                $this->checkBudgetAlert($trx);
+            }
+
+            // Simpan histori updated
+            TransactionHistory::create([
+                'transaction_id' => $trx->id,
+                'user_id' => Auth::id(),
+                'old_data' => $oldData,
+                'new_data' => $trx->toArray(),
+                'action' => 'updated',
+            ]);
+
+            DB::commit();
+            return response()->json($trx);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        // Update data transaksi
-        $trx->update($data);
-
-        // Update saldo akun baru sesuai data baru
-        $this->updateAccountBalance($accountNew, $trx->type, $trx->amount);
-
-        // Budget alert jika tipe expense
-        if ($trx->type === 'expense') {
-            $this->checkBudgetAlert($trx);
-        }
-
-        return response()->json($trx);
     }
 
     public function destroy($id)
     {
         $trx = Transaction::where('user_id', Auth::id())->findOrFail($id);
 
-        // Revert saldo akun
         $account = Account::where('user_id', Auth::id())->where('id', $trx->account_id)->first();
-        if ($account) {
-            $this->revertAccountBalance($account, $trx->type, $trx->amount);
-        }
 
-        $trx->delete();
-        return response()->noContent();
+        DB::beginTransaction();
+        try {
+            if ($account) {
+                $this->revertAccountBalance($account, $trx->type, $trx->amount);
+            }
+
+            $oldData = $trx->toArray();
+
+            $trx->delete();
+
+            // Simpan histori deleted
+            TransactionHistory::create([
+                'transaction_id' => $id,
+                'user_id' => Auth::id(),
+                'old_data' => $oldData,
+                'new_data' => null,
+                'action' => 'deleted',
+            ]);
+
+            DB::commit();
+            return response()->noContent();
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     // Fungsi bantu update saldo akun
@@ -164,5 +212,17 @@ class TransactionController extends Controller
                 event(new BudgetLimitReached($budget, $percent));
             }
         }
+    }
+
+    // New: get history of a transaction
+    public function history($id)
+    {
+        $transaction = Transaction::where('user_id', Auth::id())->findOrFail($id);
+
+        $histories = TransactionHistory::where('transaction_id', $transaction->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($histories);
     }
 }
