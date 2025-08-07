@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class RecurringTransaction extends Model
 {
@@ -12,11 +13,24 @@ class RecurringTransaction extends Model
         'member_id',
         'account_id',
         'category_id',
-        'type',        // income, expense
+        'type',
         'amount',
-        'date',
-        'note'
+        'description',
+        'recurring_type', // <- ini yang benar
+        'next_date',
     ];
+
+    public function calculateNextDate()
+    {
+        $date = Carbon::parse($this->next_date);
+
+        return match ($this->recurring_type) {
+            'daily' => $date->addDay(),
+            'weekly' => $date->addWeek(),
+            'monthly' => $date->addMonth(),
+            default => $date,
+        };
+    }
     public function user()
     {
         return $this->belongsTo(User::class);

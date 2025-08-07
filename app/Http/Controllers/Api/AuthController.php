@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use App\Models\{RecurringTransaction, Transaction};
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -32,7 +34,7 @@ class AuthController extends Controller
     }
 
     public function login(Request $request)
-    {        
+    {
         $data = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -49,11 +51,15 @@ class AuthController extends Controller
         // Hapus baris dd($token)
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // 🟩 Jalankan recurring setelah login
+        $recurringExecuted = $this->runRecurringForUser($user);
+
         return response()->json([
             'message' => 'Login berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
             'user' => $user,
+            'recurring_executed' => $recurringExecuted,
         ]);
     }
 
@@ -67,5 +73,53 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    private function runRecurringForUser(User $user)
+    {
+        $today = now()->toDateString();
+        $executed = [];
+
+        $recurrings = RecurringTransaction::where('user_id', $user->id)
+            ->where('next_date', '<=', $today)
+            ->get();
+
+        foreach ($recurrings as $recurring) {
+            $transaction = Transaction::create([
+                'user_id'     => $recurring->user_id,
+                'member_id'   => $recurring->member_id,
+                'account_id'  => $recurring->account_id,
+                'category_id' => $recurring->category_id,
+                'amount'      => $recurring->amount,
+                'description' => '[Recurring] ' . $recurring->description,
+                'type'        => $recurring->type,
+                'date'        => $today,
+            ]);
+
+            // Update next_date sesuai recurring_type
+            switch ($recurring->recurring_type) {
+                case 'daily':
+                    $recurring->next_date = now()->addDay();
+                    break;
+                case 'weekly':
+                    $recurring->next_date = now()->addWeek();
+                    break;
+                case 'monthly':
+                    $recurring->next_date = now()->addMonth();
+                    break;
+            }
+
+            $recurring->save();
+
+            // Tambahkan ke list yang akan dikembalikan
+            $executed[] = [
+                'category' => $recurring->category->name,
+                'amount' => $recurring->amount,
+                'type' => $recurring->type,
+                'date' => $today,
+            ];
+        }
+
+        return $executed;
     }
 }

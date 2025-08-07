@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\SavingTargetController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\BackupController;
 
 // Route::post('/register', [AuthController::class, 'register'])->name('register');
 // Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -34,4 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('transfer', [TransferController::class, 'store']);
     Route::get('dashboard', [DashboardController::class, 'index']);
+
+    Route::get('/report/monthly', [ReportController::class, 'monthly']);
+    Route::get('/report/yearly', [ReportController::class, 'yearly']);
+
+    Route::get('/backup/export', [BackupController::class, 'export']);
+    Route::post('/backup/import', [BackupController::class, 'import']);
 });
