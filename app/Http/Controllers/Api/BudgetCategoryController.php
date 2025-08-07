@@ -4,46 +4,33 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\{Member, Account, Category, BudgetCategory, Transaction, RecurringTransaction, SavingTarget};
 
 class BudgetCategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
+    public function index() {
+        return BudgetCategory::where('user_id', Auth::id())->with('category')->get();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+    public function store(Request $request) {
+        $data = $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'amount' => 'required|numeric'
+        ]);
+        $data['user_id'] = Auth::id();
+        return BudgetCategory::create($data);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
+    public function update(Request $request, $id) {
+        $item = BudgetCategory::where('user_id', Auth::id())->findOrFail($id);
+        $item->update($request->only(['category_id', 'amount']));
+        return $item;
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+    public function destroy($id) {
+        $item = BudgetCategory::where('user_id', Auth::id())->findOrFail($id);
+        $item->delete();
+        return response()->noContent();
     }
 }
