@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -31,7 +32,7 @@ class AuthController extends Controller
     }
 
     public function login(Request $request)
-    {
+    {        
         $data = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -45,6 +46,7 @@ class AuthController extends Controller
             ]);
         }
 
+        // Hapus baris dd($token)
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -64,6 +66,6 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return $request->user();
+        return response()->json($request->user());
     }
 }

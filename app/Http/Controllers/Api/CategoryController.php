@@ -14,8 +14,15 @@ class CategoryController extends Controller
         return Category::where('user_id', Auth::id())->get();
     }
 
+    public function show($id)
+    {
+        $category = Category::where('user_id', Auth::id())->findOrFail($id);
+        return response()->json($category);
+    }
+
     public function store(Request $request)
     {
+        dd($request->all());
         $data = $request->validate([
             'name' => 'required',
             'type' => 'required|in:income,expense'

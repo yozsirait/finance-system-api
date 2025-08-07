@@ -10,14 +10,19 @@ use App\Http\Controllers\Api\RecurringTransactionController;
 use App\Http\Controllers\Api\SavingTargetController;
 use App\Http\Controllers\Api\TransferController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\AuthController;
 
+// Route::post('/register', [AuthController::class, 'register'])->name('register');
+// Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
+    // Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    // Route::get('/user', [AuthController::class, 'user'])->name('user');
     Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('members', MemberController::class);
     Route::apiResource('accounts', AccountController::class);

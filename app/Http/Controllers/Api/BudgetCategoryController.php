@@ -9,11 +9,22 @@ use App\Models\{Member, Account, Category, BudgetCategory, Transaction, Recurrin
 
 class BudgetCategoryController extends Controller
 {
-    public function index() {
+    public function index()
+    {
         return BudgetCategory::where('user_id', Auth::id())->with('category')->get();
     }
 
-    public function store(Request $request) {
+    public function show($id)
+    {
+        $budget = BudgetCategory::with('category')
+            ->where('user_id', Auth::id())
+            ->findOrFail($id);
+
+        return response()->json($budget);
+    }
+
+    public function store(Request $request)
+    {
         $data = $request->validate([
             'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric'
@@ -22,13 +33,15 @@ class BudgetCategoryController extends Controller
         return BudgetCategory::create($data);
     }
 
-    public function update(Request $request, $id) {
+    public function update(Request $request, $id)
+    {
         $item = BudgetCategory::where('user_id', Auth::id())->findOrFail($id);
         $item->update($request->only(['category_id', 'amount']));
         return $item;
     }
 
-    public function destroy($id) {
+    public function destroy($id)
+    {
         $item = BudgetCategory::where('user_id', Auth::id())->findOrFail($id);
         $item->delete();
         return response()->noContent();
