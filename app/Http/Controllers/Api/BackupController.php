@@ -41,49 +41,49 @@ class BackupController extends Controller
         ]);
 
         foreach ($data['members'] as $member) {
-            \App\Models\Member::updateOrCreate(
+            Member::updateOrCreate(
                 ['id' => $member['id'], 'user_id' => $user_id],
                 array_merge($member, ['user_id' => $user_id])
             );
         }
 
         foreach ($data['accounts'] as $account) {
-            \App\Models\Account::updateOrCreate(
+            Account::updateOrCreate(
                 ['id' => $account['id'], 'user_id' => $user_id],
                 array_merge($account, ['user_id' => $user_id])
             );
         }
 
         foreach ($data['categories'] as $category) {
-            \App\Models\Category::updateOrCreate(
+            Category::updateOrCreate(
                 ['id' => $category['id'], 'user_id' => $user_id],
                 array_merge($category, ['user_id' => $user_id])
             );
         }
 
         foreach ($data['budget_categories'] as $budget) {
-            \App\Models\BudgetCategory::updateOrCreate(
+            BudgetCategory::updateOrCreate(
                 ['id' => $budget['id'], 'user_id' => $user_id],
                 array_merge($budget, ['user_id' => $user_id])
             );
         }
 
         foreach ($data['transactions'] as $transaction) {
-            \App\Models\Transaction::updateOrCreate(
+            Transaction::updateOrCreate(
                 ['id' => $transaction['id'], 'user_id' => $user_id],
                 array_merge($transaction, ['user_id' => $user_id])
             );
         }
 
         foreach ($data['recurring_transactions'] as $recurring) {
-            \App\Models\RecurringTransaction::updateOrCreate(
+            RecurringTransaction::updateOrCreate(
                 ['id' => $recurring['id'], 'user_id' => $user_id],
                 array_merge($recurring, ['user_id' => $user_id])
             );
         }
 
         foreach ($data['saving_targets'] as $saving) {
-            \App\Models\SavingTarget::updateOrCreate(
+            SavingTarget::updateOrCreate(
                 ['id' => $saving['id'], 'user_id' => $user_id],
                 array_merge($saving, ['user_id' => $user_id])
             );
